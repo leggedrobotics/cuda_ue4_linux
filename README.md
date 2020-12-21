@@ -4,7 +4,7 @@ This repository is a plug-in to utilize cuda processing on unreal engine texture
 
 **Authors & Maintainers**:
   * [Burak Cizmeci](burak.cizmeci@gmail.com)
-  * [Georgios Mavrakis](gamavrakis@gmail.com)
+  * [Georgios Mavrakis]
   
   
 ## License
