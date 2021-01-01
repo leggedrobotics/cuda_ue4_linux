@@ -8,21 +8,22 @@ public class cudaPlugin : ModuleRules
 	public cudaPlugin(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-					
-		
-			PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+
+
+		PublicDependencyModuleNames.AddRange(
+		new string[]
+	{
 				"Core",
 				"RHI",
 				"RenderCore",
-				"VulkanRHI",
+				"D3D11RHI",
 				"Projects"
+		// ... add other public dependencies that you statically link with here ...
+		}
+		);
 
-			}
-			);
-			
-		
+
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -30,60 +31,55 @@ public class cudaPlugin : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"BuildSettings"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
-		
+
+
 
 
 		//Include RHI Headers for texture access in GPU memory
-           	string EnginePath = Path.GetFullPath(Target.RelativeEnginePath);
+		string EnginePath = Path.GetFullPath(Target.RelativeEnginePath);
 		PrivateIncludePaths.AddRange(
-			new string[] {
-				// ... add other private include paths required here ...
-
-				EnginePath + "Source/Runtime/VulkanRHI/Private/",
-                		EnginePath + "Source/Runtime/VulkanRHI/Private/Linux/",
-				EnginePath + "Source/ThirdParty/Vulkan/Include/vulkan"
-
+			new string[]
+			{
+				EnginePath + "Source/Runtime/Windows/D3D11RHI/Private/",
+				EnginePath + "Source/Runtime/Windows/D3D11RHI/Private/Windows/"
 			}
-			);
-
-		PublicIncludePaths.AddRange(
-		new string[]
-		{
-		EnginePath + "Source/Runtime/VulkanRHI/Public/",
-		}
 		);
 
+		PublicIncludePaths.AddRange(
+			new string[]
+			{
+				EnginePath + "Source/Runtime/Windows/D3D11RHI/Public/"
+			}
+		);
 
 		//Include CUDA
-		string cuda_path = "/usr/local/cuda";
+		string cuda_path = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2";
 		string cuda_include = "include";
-		string cuda_lib = "lib64";
-		string cuda_lib_stubs = "lib64/stubs";
+		string cuda_lib = "lib/x64";
 
 		PublicIncludePaths.Add(Path.Combine(cuda_path, cuda_include));
 
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libcudart_static.a"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib_stubs, "libcuda.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppial.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppicc.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppig.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppial.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppif.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppist.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppidei.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnpps.so"));
-		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "libnppisu.so"));
-
+		//PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "cudart.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "cudart_static.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "cuda.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppial.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppig.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppial.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppif.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppist.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppidei.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "npps.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppisu.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppicc.lib"));
+		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppig.lib"));
 		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
-			);
+		
+	
+
+
+
 	}
 }

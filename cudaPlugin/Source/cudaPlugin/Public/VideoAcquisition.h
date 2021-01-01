@@ -1,5 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -12,6 +11,11 @@
 #include <cuda_runtime.h>
 #include "npp.h"
 
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "cuda_d3d11_interop.h"
+#include "d3d11.h"
+#include "Windows/HideWindowsPlatformTypes.h"
+
 #include <memory.h>
 #include <string>
 #include <iostream>
@@ -20,42 +24,35 @@
 
 #include <fstream>      // std::ifstream, std::ofstream
 
+/*
 #include "DynamicRHI.h"
 #include "RenderResource.h"
 #include "RHICommandList.h"
 #include "Materials/MaterialInstanceDynamic.h"
-//#include "VulkanLinuxPlatform.h"
-//#include "VulkanPlatformDefines.h"
-/*
-#include "VulkanState.h"
-#include "VulkanUtil.h"
-#include "VulkanResources.h"
 */
 
-#include "VulkanRHIPrivate.h"
-#include "VulkanPendingState.h"
-#include "VulkanContext.h"
-#include "EngineGlobals.h"
-#include "VulkanLLM.h"
-#include "VulkanResources.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "cuda.h"
+#include "cuda_d3d11_interop.h"
+#include "d3d11.h"
+#include "Windows/HideWindowsPlatformTypes.h"
+
+#include "DynamicRHI.h"
+#include "D3D11RHI.h"
+#include "D3D11RHIBasePrivate.h"
+#include "D3D11StateCachePrivate.h"
+#include "D3D11Util.h"
+#include "D3D11State.h"
+#include "D3D11Resources.h"
+#include "Materials/MaterialInstanceDynamic.h"
+
+#include "RenderResource.h"
+#include "RHICommandList.h"
 
 
-#include "VulkanCommon.h"
-#include "VulkanConfiguration.h"
-#include "VulkanDynamicRHI.h"
-#include "VulkanGlobals.h"
-#include "VulkanMemory.h"
-#include "VulkanRHIBridge.h"
-#include "VulkanShaderResources.h"
-#include "VulkanUtil.h"
-
-
-#include "BoundShaderStateCache.h"
-#include "VulkanShaderResources.h"
-#include "VulkanState.h"
-#include "Misc/ScopeRWLock.h"
-
-
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "VideoAcquisition.generated.h"
 
@@ -84,19 +81,30 @@ public:
         int VideoHeight = 1544;
     UPROPERTY(EditAnywhere)
         int FPS = 50;
+	UPROPERTY(EditAnywhere)
+		float GainR = 0.7;
+	UPROPERTY(EditAnywhere)
+		float GainG = 0.6;
+	UPROPERTY(EditAnywhere)
+		float GainB = 1.8;
 
-	void Acquire();
-
+	
 	virtual void Tick(float DeltaTime) override;
 
     bool stopped;
 
+	bool InitCUDA();
     void InitCamera();
     void threadLoop();
     void stop() { stopped = true; }
     void start() { stopped = false; }
 
     void UpdateTextureFromGPU();
+	int applyWhiteBalance(Npp8u* img_d, int img_pitch, int width, int height, float _gain_r, float _gain_g, float _gain_b);
+
+	
+	
+	
 
 
 protected:
@@ -126,6 +134,6 @@ private:
 
     std::thread *cameraThread = nullptr;
 
-    uint8_t vkDeviceUUID[VK_UUID_SIZE];
+    
 
 };
