@@ -89,7 +89,7 @@ Create the mesh on which the texture is rendered. Typically a simple **Plane** i
 
 #### Static Camera Actor
 * Please follow the instructions in the following video 
-![CameraActor]( https://www.youtube.com/watch?v=7dZoISdc0dM)
+![CameraActor](https://www.youtube.com/watch?v=7dZoISdc0dM)
 
 ## Known Issues
 ### CUDA Ressource Cleanup
