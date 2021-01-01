@@ -1,4 +1,4 @@
-# CUDA UE4 Plugin
+﻿# CUDA UE4 Plugin
 Unreal Engine Plugin to directly display High Resolution Video Streams that are pre-processed by Nvidia CUDA.
 
 ### Tested with Unreal Engine 4.24.3
@@ -39,7 +39,7 @@ For each video stream the following objects are required.
 
 * A **Texture Render Target 2D**: The texture on which the video stream will be rendered. This is the shared component between Unreal and CUDA.
 * A **Material**: The material is created from the texture and can be applied to meshes.
-* A **VideoReceiver**: The actor that handles the video receivement and decoding.
+* A **VideoAcquisition**: The actor that handles the video rendering.
 * A **MeshActor**: The scene object on which the video is rendered.
 
 #### Texture Render Target 2D
@@ -86,6 +86,10 @@ Create the mesh on which the texture is rendered. Typically a simple **Plane** i
 * The ratio of the **Scale** should match the aspect ratio of the video to avoid distortion.
 
 ![create_mesh](Documentation/07_attachObjectMaterial.png)
+
+#### Static Camera Actor
+* Please follow the instructions in the following video 
+![CameraActor]( https://www.youtube.com/watch?v=7dZoISdc0dM)
 
 ## Known Issues
 ### CUDA Ressource Cleanup
