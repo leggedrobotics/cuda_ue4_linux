@@ -75,11 +75,14 @@ public class cudaPlugin : ModuleRules
 		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppisu.lib"));
 		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppicc.lib"));
 		PublicAdditionalLibraries.Add(Path.Combine(cuda_path, cuda_lib, "nppig.lib"));
-		
-		
+
+		//Include Ximea
+		string ximea_path = "C:/XIMEA";
+		string ximea_include = "API";
+		string ximea_lib = "C:/XIMEA/API/64bit";
+
+		PublicIncludePaths.Add(Path.Combine(ximea_path, ximea_include));
+		PublicAdditionalLibraries.Add(Path.Combine(ximea_lib, "xiapi64.lib"));
 	
-
-
-
 	}
 }

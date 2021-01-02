@@ -90,10 +90,6 @@ bool AVideoAcquisition::InitCUDA()
         CUresult ctxCreateRet = cuCtxCreate(&cuContext, 0, cuDevice);
         //UE_LOG(LogGPUVideoDecode, Log, TEXT("Decode with NvDecoder."));
 
-        //Allocate GPU memory for intermediate steps
-        //dpFrameMain = nppiMalloc_8u_C4(VideoWidth, VideoHeight, &nPitchMain);
-        //dpFrame = nppiMalloc_8u_C4(VideoWidth, VideoHeight, &nPitch);
-
         //Register the texture on which the video is rendered as a CUDA resource
         AVideoAcquisition* This = this;
 
@@ -112,39 +108,91 @@ bool AVideoAcquisition::InitCUDA()
     return true;
 }
 
+
+
 void AVideoAcquisition::InitCamera()
 {
+    memset(&xiImage, 0, sizeof(xiImage));
+    xiImage.size = sizeof(XI_IMG);
 
-    // Read pre-recorded raw camera images
-    std::ifstream infile ("C:/Users/burak/Documents/rawbayer.data",std::ifstream::binary);
+    // Retrieving a handle to the camera device
+    printf("Opening camera ...\n");
+    xiOpenDeviceBy(XI_OPEN_BY_SN, TCHAR_TO_UTF8(*CameraSerial), &xiHandle);
+    HandleResult(stat, "xiOpenDevice");
 
-    // allocate memory for temporary file content (Bayer pattern images)
-    char* buffer = new char[VideoWidth*VideoHeight];
+    // show serial number of this camera
+    char sn[20] = "";
+    xiGetParamString(xiHandle, XI_PRM_DEVICE_SN, sn, sizeof(sn));
+    printf("Camera opened with Serial number: %s\n", sn);
 
-    for(int i=0;i<240;i++){
 
-          std::cout <<"DEBUG -- Loading Frame ID: " << i << std::endl;
-          // read content of infile
-          infile.read(buffer,VideoWidth*VideoHeight);
+    printf("Exposure is set to %d us\n", exposure);
+    // Setting "exposure" parameter (10ms=10000us)
+    stat = xiSetParamInt(xiHandle, XI_PRM_EXPOSURE, exposure);
+    //HandleResult(stat,"xiSetParam (exposure set)");
+    char tempType[200] = "";
+    std::string devTypePCIe("PCIe");
+    std::string devTypeUSB("U3V");
 
-          // Allocate GPU memory
-          dpFrameBayer[i] = nppiMalloc_8u_C1(VideoWidth, VideoHeight, &(nPitchBayer));
+    xiGetParamString(xiHandle, XI_PRM_DEVICE_TYPE, &tempType, sizeof(tempType));
 
-          // Copy image from Host to GPU memory
-          cudaMemcpy2D(dpFrameBayer[i], nPitchBayer,buffer, VideoWidth,(size_t)VideoWidth,(size_t)VideoHeight,cudaMemcpyHostToDevice);
+
+    if (devTypePCIe.compare(tempType) == 0) {
+
+        printf("This is a PCIe camera--> GPUDirect is going to be enabled\n");
+        //GPUDirect
+        xiSetParamInt(xiHandle, XI_PRM_BUFFER_POLICY, XI_BP_UNSAFE);
+        xiSetParamInt(xiHandle, XI_PRM_IMAGE_DATA_FORMAT, XI_FRM_TRANSPORT_DATA);
+        xiSetParamInt(xiHandle, XI_PRM_OUTPUT_DATA_BIT_DEPTH, 8);
+        xiSetParamInt(xiHandle, XI_PRM_TRANSPORT_DATA_TARGET, XI_TRANSPORT_DATA_TARGET_GPU_RAM); // or XI_TRANSPORT_DATA_TARGET_UNIFIED, XI_TRANSPORT_DATA_TARGET_ZEROCOPY, XI_TRANSPORT_DATA_TARGET_GPU_RAM
+
+        int payload_size = 0;
+        stat = xiGetParamInt(xiHandle, XI_PRM_IMAGE_PAYLOAD_SIZE, &payload_size);
+        stat = xiSetParamInt(xiHandle, XI_PRM_ACQ_BUFFER_SIZE, payload_size * 4);
+
+    }
+    else if (devTypeUSB.compare(tempType) == 0) {
+
+        printf("This is a USB 3.0 camera--> GPU Zero-Copy is going to be enabled\n");
+
+        //GPU Zero-Copy
+        xiSetParamInt(xiHandle, XI_PRM_BUFFER_POLICY, XI_BP_UNSAFE);
+        xiSetParamInt(xiHandle, XI_PRM_IMAGE_DATA_FORMAT, XI_FRM_TRANSPORT_DATA);
+        xiSetParamInt(xiHandle, XI_PRM_OUTPUT_DATA_BIT_DEPTH, 8);
+        xiSetParamInt(xiHandle, XI_PRM_TRANSPORT_DATA_TARGET, XI_TRANSPORT_DATA_TARGET_ZEROCOPY); // or XI_TRANSPORT_DATA_TARGET_UNIFIED, XI_TRANSPORT_DATA_TARGET_ZEROCOPY, XI_TRANSPORT_DATA_TARGET_GPU_RAM
+
+        xiSetParamInt(xiHandle, XI_PRM_ACQ_BUFFER_SIZE, 4628480);
+        xiSetParamInt(xiHandle, XI_PRM_ACQ_BUFFER_SIZE_UNIT, 8);
+        xiSetParamInt(xiHandle, XI_PRM_BUFFERS_QUEUE_SIZE, 8);
+
+        // set data rate
+        xiSetParamInt(xiHandle, XI_PRM_LIMIT_BANDWIDTH, 3170);
+        // enable the limiting
+        xiSetParamInt(xiHandle, XI_PRM_LIMIT_BANDWIDTH_MODE, XI_ON);
+
+    }
+    else {
+
+
+        printf("The camera interface - %s - is not detected!\n", tempType);
+
 
     }
 
-    infile.close();
+    // set acquisition to frame rate mode
+    xiSetParamInt(xiHandle, XI_PRM_ACQ_TIMING_MODE, XI_ACQ_TIMING_MODE_FRAME_RATE_LIMIT);
+    // set frame rate
+    xiSetParamInt(xiHandle, XI_PRM_FRAMERATE, FPS);
 
 
 }
-
 
 void AVideoAcquisition::threadLoop()
 {
 
     printf("Starting camera acquisition...\n");
+    stat = xiStartAcquisition(xiHandle);
+    HandleResult(stat, "xiStartAcquisition");
 
     unsigned int frameIndex = 0;
 
@@ -163,37 +211,31 @@ void AVideoAcquisition::threadLoop()
     // allocated memory for the RGBA image
     dpFrame = nppiMalloc_8u_C4(VideoWidth, VideoHeight, &(nPitch));
 
-
-    int CurrentFrameNumber = 0;
-    int CurrentFrameID = 0;
-
-
     while(!stopped) {
 
-        CurrentFrameID = CurrentFrameNumber++%240;
+        stat = xiGetImage(xiHandle, 5000, &xiImage);
 
-        // Perform Bayer to RGB conversion
-        status = nppiCFAToRGBA_8u_C1AC4R(dpFrameBayer[CurrentFrameID], nPitchBayer, osize, orect, dpFrame, nPitch,NPPI_BAYER_BGGR, NPPI_INTER_UNDEFINED,255); //NPPI_INTER_CUBIC, NPPI_INTER_UNDEFINED
-        
-        // Perform white balancing correction
-        applyWhiteBalance(dpFrame, nPitch, VideoWidth, VideoHeight, GainR, GainG, GainB);
+        if (stat == XI_OK) {
 
-        // Update the texture in gaming engine
-        UpdateTextureFromGPU();
+            // Perform Bayer to RGB conversion
+            status = nppiCFAToRGBA_8u_C1AC4R((Npp8u*)xiImage.bp, VideoWidth, osize, orect, dpFrame, nPitch, NPPI_BAYER_BGGR, NPPI_INTER_UNDEFINED, 255); //NPPI_INTER_CUBIC, NPPI_INTER_UNDEFINED
 
-        // Sleep for some time to wait for next update (artificial frame rate)
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            // Perform white balancing correction
+            applyWhiteBalance(dpFrame, nPitch, VideoWidth, VideoHeight, GainR, GainG, GainB);
+
+            // Update the texture in gaming engine
+            UpdateTextureFromGPU();
+
+        }
 
     }// end of thread while loop
 
-
+    printf("Stopping camera acquisition...\n");
+    xiStopAcquisition(xiHandle);
+    xiCloseDevice(xiHandle);
     printf("The camera acquisiton is closed successfully!\n");
-    
-    // Deallocate dynamic GPU memories
     nppiFree(dpFrame);
-    for (int i = 0; i < 240; i++) {
-        nppiFree(dpFrameBayer[i]);
-    }
+
 
 }// end of threadLoop function
 
