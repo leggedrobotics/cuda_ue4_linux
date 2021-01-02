@@ -82,7 +82,7 @@ void AVideoAcquisition::InitCamera()
           dpFrameBayer[i] = nppiMalloc_8u_C1(VideoWidth, VideoHeight, &(nPitchBayer));
 
           // Copy image from Host to GPU memory
-          cudaMemcpy2D(dpFrameBayer[i],VideoWidth,buffer,nPitchBayer,(size_t)VideoWidth,(size_t)VideoHeight,cudaMemcpyHostToDevice);
+          cudaMemcpy2D(dpFrameBayer[i],nPitchBayer,buffer,VideoWidth,(size_t)VideoWidth,(size_t)VideoHeight,cudaMemcpyHostToDevice);
 
 
     }
@@ -129,9 +129,15 @@ void AVideoAcquisition::threadLoop()
         CurrentFrameID = CurrentFrameNumber++%240;
 
         // Perform Bayer to RGB conversion
-        status = nppiCFAToRGBA_8u_C1AC4R(dpFrameBayer[CurrentFrameID], VideoWidth, osize, orect, dpFrame, nPitch,NPPI_BAYER_BGGR, NPPI_INTER_UNDEFINED,255); //NPPI_INTER_CUBIC, NPPI_INTER_UNDEFINED
+        status = nppiCFAToRGBA_8u_C1AC4R(dpFrameBayer[CurrentFrameID], nPitchBayer, osize, orect, dpFrame, nPitch,NPPI_BAYER_BGGR, NPPI_INTER_UNDEFINED,255); //NPPI_INTER_CUBIC, NPPI_INTER_UNDEFINED
+
+	 // Perform white balancing correction
+        applyWhiteBalance(dpFrame, nPitch, VideoWidth, VideoHeight, GainR, GainG, GainB);
 
         std::cout <<"DEBUG -- Frame ID: " << CurrentFrameID << " RGB status " << status <<  " vidBayerPitch: " << nPitchBayer <<  " vidPitch: " << nPitch <<std::endl;
+
+
+	// TODO: Update texture function should be implemented here!
 
 
     }// end of thread while loop
@@ -174,6 +180,28 @@ void AVideoAcquisition::UpdateTextureFromGPU()
             //UE_LOG(LogGPUVideoDecode, Error, TEXT("Texture Update Okay"));
         }
     });
+}
+
+
+int AVideoAcquisition::applyWhiteBalance(Npp8u* img_d, int img_pitch, int width, int height, float _gain_r, float _gain_g, float _gain_b) {
+
+    // white balance color twist
+    Npp32f wbTwist[3][4] = {
+        { 1.0, 0.0, 0.0, 0.0 },
+        { 0.0, 1.0, 0.0, 0.0 },
+        { 0.0, 0.0, 1.0, 0.0 }
+    };
+    wbTwist[0][0] = _gain_r;
+    wbTwist[1][1] = _gain_g;
+    wbTwist[2][2] = _gain_b;
+    NppiSize osize;
+    osize.width = width;
+    osize.height = height;
+
+    nppiColorTwist32f_8u_C4IR(img_d, img_pitch, osize, wbTwist);
+
+
+    return 0;
 }
 
 

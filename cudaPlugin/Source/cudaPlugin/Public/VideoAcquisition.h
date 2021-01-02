@@ -79,11 +79,17 @@ public:
 		UTextureRenderTarget2D* RenderTarget;
 	//Video configuration
 	UPROPERTY(EditAnywhere)
-        int VideoWidth = 2064;
+        	int VideoWidth = 2064;
 	UPROPERTY(EditAnywhere)
-        int VideoHeight = 1544;
-    UPROPERTY(EditAnywhere)
-        int FPS = 50;
+        	int VideoHeight = 1544;
+        UPROPERTY(EditAnywhere)
+        	int FPS = 50;
+	UPROPERTY(EditAnywhere)
+		float GainR = 0.7;
+	UPROPERTY(EditAnywhere)
+		float GainG = 0.6;
+	UPROPERTY(EditAnywhere)
+		float GainB = 1.8;
 
 	void Acquire();
 
@@ -98,6 +104,8 @@ public:
 
     void UpdateTextureFromGPU();
 
+
+   int applyWhiteBalance(Npp8u* img_d, int img_pitch, int width, int height, float _gain_r, float _gain_g, float _gain_b);
 
 protected:
 	// Called when the game starts
