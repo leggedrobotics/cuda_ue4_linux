@@ -87,6 +87,13 @@ Create the mesh on which the texture is rendered. Typically a simple **Plane** i
 
 ![create_mesh](Documentation/07_attachObjectMaterial.png)
 
+#### Static Camera Actor
+* Please follow the instructions in the following video to add a static camera in the scene
+[CameraActor](https://www.youtube.com/watch?v=7dZoISdc0dM)
+
+#### Missing .dll files
+* Check the missing .dll files in the recent log file located under Visual Studio Project folder Saved/Logs. Copy the missing .dll files under the Plugin folder Binaries/Win64. By experience, the missing ones are "nppicc64_10.dll", "nppisu64_10.dll" and "xiapi64.dll". 
+
 ## Known Issues
 ### CUDA Ressource Cleanup
 The cleanup of the CUDA ressources at the end of a program run seems to be incomplete. If you start the game from Unreal Editor, end it and start iot again, the allocation of the shared textures fails.
